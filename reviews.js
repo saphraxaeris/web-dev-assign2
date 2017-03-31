@@ -89,3 +89,148 @@ exports.addReview = function(httpRequest, httpResponse) {
     }
 };
 
+exports.deleteReview = function(httpRequest, httpResponse) {
+    var id = httpRequest.query.id;
+    var storeId = httpRequest.query.storeid;
+    var userId = httpRequest.query.userid;
+
+    if(id) {
+        var searchQuery = { '_id': new BSON.ObjectID(id)};
+        db.collection('stores').findOne(searchQuery).then(function(data){
+            if(data) {
+                db.collection('reviews').remove({'_id': new BSON.ObjectID(id)}, {safe:true}, function(err, result) {
+                    if (err) {
+                        httpResponse.status(500);
+                        httpResponse.send('An error has occurred.');
+                    }
+                    else {
+                        httpResponse.send('Review has been deleted.');
+                    }
+                });
+            }
+            else {
+                //Not found
+                httpResponse.status(404);
+                httpResponse.send('Review not found.');
+            }
+        });
+    }
+    else if(storeId) {
+        var searchQuery = { 'storeID': new BSON.ObjectID(storeId)};
+        db.collection('reviews').find(searchQuery).toArray().then(function(data){
+            if(data) {
+                var worked = true;
+                var count = 0;
+                data.forEach(function(item){
+                    db.collection('reviews').remove({'storeID': new BSON.ObjectID(storeId)}, {safe:true}, function(err, result) {
+                        if (err) {
+                            worked = false;
+                        }
+                        else {
+                            count++;
+                        }
+                    });
+                });
+
+                if(worked) {
+                    httpResponse.send(count + ' reviews have been deleted.');
+                }
+                else {
+                    httpResponse.status(500);
+                    httpResponse.send('An error has occurred. Not all reviews might have been deleted. ' + count + ' revies were deleted.');
+                }
+            }
+            else {
+                //Not found
+                httpResponse.status(404);
+                httpResponse.send('Store ID not found.');
+            }
+        });
+    }
+    else if(userId) {
+        var searchQuery = { 'userID': new BSON.ObjectID(userId)};
+        db.collection('reviews').find(searchQuery).toArray().then(function(data){
+            if(data) {
+                var worked = true;
+                var count = 0;
+                data.forEach(function(item){
+                    db.collection('reviews').remove({'userID': new BSON.ObjectID(userId)}, {safe:true}, function(err, result) {
+                        if (err) {
+                            worked = false;
+                        }
+                        else {
+                            count++;
+                        }
+                    });
+                });
+
+                if(worked) {
+                    httpResponse.send(count + ' reviews have been deleted.');
+                }
+                else {
+                    httpResponse.status(500);
+                    httpResponse.send('An error has occurred. Not all reviews might have been deleted. ' + count + ' revies were deleted.');
+                }
+            }
+            else {
+                //Not found
+                httpResponse.status(404);
+                httpResponse.send('User ID not found.');
+            }
+        });
+    }
+    else {
+        httpResponse.status(500);
+        httpResponse.send('Invalid method.');
+    }
+};
+
+exports.updateReview = function(httpRequest, httpResponse) {
+    var review = httpRequest.body;
+    var id = httpRequest.query.id;
+    if(id) {
+        var searchQuery = { '_id': new BSON.ObjectID(id)};
+        db.collection('reviews').findOne(searchQuery).then(function(data){
+            if(data) {
+                //Found
+                review._id = searchQuery._id;
+                if(!review.storeID)
+                    review.storeID = data.storeID;
+                if(!review.userID)
+                    review.userID = data.userID;
+                if(!review.rating)
+                    review.rating = data.rating;
+                else {
+                    if (review.rating === parseInt(review.rating, 10)) {
+                        //Is an integer, must verify if between 0 and 10
+                        review.rating = parseInt(review.rating);
+                        if(review.rating <=0 && review.rating >= 10) {
+                            review.rating = data.rating;
+                        }
+                    }
+                }
+                if(!review.comment)
+                    review.comment = data.comment;
+
+                db.collection('reviews').update(searchQuery, review, function(err, result) {
+                    if (err) {
+                        httpResponse.status(500);
+                        httpResponse.send('An error has occurred.');
+                    }
+                    else {
+                        httpResponse.send(review);
+                    }
+                });
+            }
+            else {
+                //Not found
+                httpResponse.status(404);
+                httpResponse.send('Review not found.');
+            }
+        });
+    }
+    else {
+        httpResponse.status(500);
+        httpResponse.send('Invalid method.');
+    }
+};

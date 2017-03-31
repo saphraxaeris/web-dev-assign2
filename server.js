@@ -55,6 +55,8 @@ expressApp.put('/store', users.updateStore);
 //Reviews
 expressApp.get('/review', stores.getReview);
 expressApp.post('/review', stores.addReview);
+expressApp.delete('/review', stores.deleteReview);
+
 
 //Start server
 expressApp.listen(3000);
