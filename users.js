@@ -92,7 +92,36 @@ exports.deleteUser = function(httpRequest, httpResponse) {
         db.collection('users').findOne(searchQuery).then(function(data){
             if(data) {
                 //Found
-                //Remove all reviews for user
+                var searchQuery = { 'userID': new BSON.ObjectID(id)};
+        db.collection('reviews').find(searchQuery).toArray().then(function(data){
+            if(data) {
+                var worked = true;
+                var count = 0;
+                data.forEach(function(item){
+                    db.collection('reviews').remove({'userID': new BSON.ObjectID(id)}, {safe:true}, function(err, result) {
+                        if (err) {
+                            worked = false;
+                        }
+                        else {
+                            count++;
+                        }
+                    });
+                });
+
+                if(worked) {
+                    httpResponse.send(count + ' reviews have been deleted.');
+                }
+                else {
+                    httpResponse.status(500);
+                    httpResponse.send('An error has occurred. Not all reviews might have been deleted. ' + count + ' revies were deleted.');
+                }
+            }
+            else {
+                //Not found
+                httpResponse.status(404);
+                httpResponse.send('User ID not found.');
+            }
+        });
 
                 //Remove user
                 db.collection('users').remove({'_id': new BSON.ObjectID(id)}, {safe:true}, function(err, result) {

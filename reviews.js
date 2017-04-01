@@ -61,13 +61,47 @@ exports.addReview = function(httpRequest, httpResponse) {
             //Is an integer, must verify if between 0 and 10
             review.rating = parseInt(review.rating);
             if(review.rating >=0 && review.rating <= 10) {
-                db.collection('reviews').insert(review, {safe:true}, function(err, result) {
-                    if (err) {
-                        httpResponse.status(500);
-                        httpResponse.send('An error has occurred.');
-                    }  
+                var searchQuery = { };
+                searchQuery = { '_id': new BSON.ObjectID(review.storeID)};
+                db.collection('stores').findOne(searchQuery).then(function(data){
+                    if(data) {
+                        searchQuery = { 'userID': new BSON.ObjectID(userID)};
+                        db.collection('reviews').find(searchQuery).toArray().then(function(data){
+                            if(data) {
+                                data.forEach(function(item){
+                                    if(item.userID === userId) {
+                                        httpResponse.status(500);
+                                        httpResponse.send('User already has review for this store.');
+                                    }
+                                    else {
+                                        db.collection('reviews').insert(review, {safe:true}, function(err, result) {
+                                            if (err) {
+                                                httpResponse.status(500);
+                                                httpResponse.send('An error has occurred.');
+                                            }  
+                                            else {
+                                                httpResponse.send(result.ops[0]);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                            else {
+                                db.collection('reviews').insert(review, {safe:true}, function(err, result) {
+                                    if (err) {
+                                        httpResponse.status(500);
+                                        httpResponse.send('An error has occurred.');
+                                    }  
+                                    else {
+                                        httpResponse.send(result.ops[0]);
+                                    }
+                                });
+                            }
+                        });
+                    }
                     else {
-                        httpResponse.send(result.ops[0]);
+                        httpResponse.status(500);
+                        httpResponse.send('Store not found.');
                     }
                 });
             }

@@ -73,7 +73,36 @@ exports.deleteStore = function(httpRequest, httpResponse) {
         db.collection('stores').findOne(searchQuery).then(function(data){
             if(data) {
                 //Found
-                //Remove all reviews of store
+                var searchQuery = { 'storeID': new BSON.ObjectID(id)};
+        db.collection('reviews').find(searchQuery).toArray().then(function(data){
+            if(data) {
+                var worked = true;
+                var count = 0;
+                data.forEach(function(item){
+                    db.collection('reviews').remove({'storeID': new BSON.ObjectID(id)}, {safe:true}, function(err, result) {
+                        if (err) {
+                            worked = false;
+                        }
+                        else {
+                            count++;
+                        }
+                    });
+                });
+
+                if(worked) {
+                    httpResponse.send(count + ' reviews have been deleted.');
+                }
+                else {
+                    httpResponse.status(500);
+                    httpResponse.send('An error has occurred. Not all reviews might have been deleted. ' + count + ' revies were deleted.');
+                }
+            }
+            else {
+                //Not found
+                httpResponse.status(404);
+                httpResponse.send('Store ID not found.');
+            }
+        });
 
                 //Remove store
                 db.collection('stores').remove({'_id': new BSON.ObjectID(id)}, {safe:true}, function(err, result) {
